@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "balderdash-utilities-plugin",
+	"name": "Balderdash Utilities Plugin",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Manage some recuring tasks in the Balderdash vault",
+	"author": "Erich Wilgenbus",
+	"authorUrl": "https://erichfw.co.za",
+	"fundingUrl": "https://erichfw.co.za/fundme",
 	"isDesktopOnly": false
 }
