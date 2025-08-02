@@ -1,6 +1,89 @@
-import { generateUniqueCode, extractLineContext } from '../src/utils/helpers';
+import { generateUniqueCode, fileToHeader} from '../src/utils/helpers';
+import { TFile } from 'obsidian';
+
+// Mock TFile
+class MockTFile {
+    path: string;
+    name: string;
+    vault: any;
+
+    constructor(path: string) {
+        this.path = path;
+        this.name = path.split('/').pop() || '';
+        this.vault = {
+            read: jest.fn().mockResolvedValue('# Todo\n\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content'),            
+            modify: jest.fn().mockResolvedValue('')
+        };
+    }
+}
+
+// Mock TFile
+class MockTFileEmpty {
+    path: string;
+    name: string;
+    vault: any;
+
+    constructor(path: string) {
+        this.path = path;
+        this.name = path.split('/').pop() || '';
+        this.vault = {
+            read: jest.fn().mockResolvedValue(''),
+            modify: jest.fn().mockResolvedValue('')
+        };
+    }
+}
+
 
 describe('Helpers', () => {
+
+    describe('fileToHeader', () => {
+
+        const mockSettings = {
+            myTaskHeader:"# Todo",
+            myTaskAliases: ["#action","#follow-up","#think-about","#read"],
+            myResourceAliases: ["#resource","#resource-lucid","#resource-docx","#resource-xlsx","#resource-pptx","#resource-http","#resource-pdf","#resource-confluence","#resource-teams"],
+            myResouceFile: "Resources.md",
+            myResourceHeader:"# Resources",
+            myDestinationOverwrite : "#here",
+            myBlockNoteFolder: "005 / Meeting Notes",
+            myBlockListHeader: "# Notes"
+        };
+
+        test('should add line to file under existing header', async () => {
+            const line = "- [ ] This is a new line";
+            const file = new MockTFile('tasks.md');
+            
+            await fileToHeader(line, file as TFile,mockSettings.myTaskHeader);
+            
+            expect(file.vault.read).toHaveBeenCalledWith(file);
+            expect(file.vault.modify).toHaveBeenCalled();
+            expect(file.vault.modify).toHaveBeenCalledWith(file,'# Todo\n\n- [ ] This is a new line\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content\n\n');
+        });
+        
+        test('should add line to file under new header if file is empty', async () => {
+        
+            const line = "This is a new line";
+            const file = new MockTFileEmpty('empty.md');
+            
+            await fileToHeader(line, file as TFile, mockSettings.myTaskHeader);
+
+            expect(file.vault.read).toHaveBeenCalled();
+            expect(file.vault.modify).toHaveBeenCalled();
+            expect(file.vault.modify).toHaveBeenCalledWith(file,"# Todo\n\nThis is a new line\n\n");
+        });
+
+        test('should create new header if file is not empty but does not have header', async () => {
+            const line = "This is a new line";
+            const file = new MockTFile('tasks.md');
+            
+            await fileToHeader(line, file as TFile, "# New header");
+
+            expect(file.vault.read).toHaveBeenCalled();
+            expect(file.vault.modify).toHaveBeenCalled();
+            expect(file.vault.modify).toHaveBeenCalledWith(file,'# Todo\n\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content\n\n# New header\n\nThis is a new line\n\n');
+        });
+    });
+
     describe('generateUniqueCode', () => {
         test('should generate code with default length of 10', () => {
             const code = generateUniqueCode();
@@ -23,52 +106,4 @@ describe('Helpers', () => {
             expect(code).toMatch(/^[0-9A-Za-z]+$/);
         });
     });
-
-    describe('extractLineContext', () => {
-        test('should extract links from text', () => {
-            const text = 'This has [[link1]] and [[link2]]';
-            const context = extractLineContext(text);
-            expect(context).toContain('[[link1]]');
-            expect(context).toContain('[[link2]]');
-        });
-
-        test('should extract tags from text', () => {
-            const text = 'This has #tag1 and #tag2';
-            const context = extractLineContext(text);
-            expect(context).toContain('#tag1');
-            expect(context).toContain('#tag2');
-        });
-
-        test('should extract both links and tags', () => {
-            const text = 'Mixed [[link]] and #tag content';
-            const context = extractLineContext(text);
-            expect(context).toContain('[[link]]');
-            expect(context).toContain('#tag');
-            expect(context).toHaveLength(2);
-        });
-
-        test('should return empty array for text without context', () => {
-            const text = 'Plain text without links or tags';
-            const context = extractLineContext(text);
-            expect(context).toHaveLength(0);
-        });
-
-        test('should handle complex links with sections', () => {
-            const text = 'Link to [[file#section]] here';
-            const context = extractLineContext(text);
-            expect(context).toContain('[[file#section]]');
-        });
-
-        test('should handle complex links rename', () => {
-            const text = 'Link to [[file|rename]] here';
-            const context = extractLineContext(text);
-            expect(context).toContain('[[file|rename]]');
-        });
-
-        test('should handle complex nested tags', () => {
-            const text = 'Tag with numbers #tag/tag2/tag3 here';
-            const context = extractLineContext(text);
-            expect(context).toContain('#tag/tag2/tag3');
-        });
-    });
-});
+})
