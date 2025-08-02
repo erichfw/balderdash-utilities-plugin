@@ -20,6 +20,12 @@ const order = {
 }
 
 
+interface ContextDecoded { 
+    contextItem: string;   
+    file: TFile;   
+    type: ContextType;
+}
+
 export class ContextTranslator {
 
     private NOTCONTEXT =  ["#0m","#5m","#15m","#30m","60m","120m","#meeting","#action","#action-here","#deadline","follow-up","read","#frog","#🐸"]
@@ -35,7 +41,6 @@ export class ContextTranslator {
         this.app = app;
         this.vault = app.vault;
     }
-
     
     public static extractLinkedPath(contextItem:string):string
     {
@@ -52,7 +57,7 @@ export class ContextTranslator {
      * @param contextItem The context item (tag or link)
      * @returns The matching TFile or undefined
      */
-    public translate(contextItem: string, source:TFile): {contextItem: string, file:TFile, type:ContextType} | undefined {
+    public translate(contextItem: string, source:TFile): ContextDecoded | undefined {
 
         // Process link
         if (contextItem.startsWith('[[') && contextItem.endsWith(']]')) {
@@ -97,13 +102,13 @@ export class ContextTranslator {
      * @param contextItems Array of context items (tags and links)
      * @returns The first matching TFile or undefined
      */
-    public translateAll(contextItems: string[], sourcePath:TFile): TFile[] {
+    public translateAll(contextItems: string[], sourcePath:TFile): ContextDecoded[]  {
+        if (contextItems.length === 0) return [];
         const files = contextItems
             .map(i => this.translate(i, sourcePath))
             .filter((a): a is {contextItem: string, file: TFile; type: ContextType } => a !== undefined)
-            .sort((a, b) => order[a.type] - order[b.type]) //if a < b then put b first
-            .map(a => a.file);
-        console.log(`Translating context items: ${contextItems.join(', ')} to files: ${files.map(f => f.path).join(', ')}`);
+            .sort((a, b) => order[a.type] - order[b.type]) //if a < b then put b first;
+        console.log(`Translating context items: ${contextItems.join(', ')} to files: ${files.map(f => f.file.path).join(', ')}`);
         return files;
     }
 }

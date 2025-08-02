@@ -102,19 +102,19 @@ describe('ContextTranslator', () => {
         const contextItems = ['[[developer]]', '[[person]]', '[[team]]', '[[project1]]'];
         const results = translator.translateAll(contextItems, mockSourceFile);
         
-        expect(results[0].path).toBe('project1.md');  // OUTCOME
-        expect(results[1].path).toBe('team.md');      // COMMUNITY
-        expect(results[2].path).toBe('person.md');    // STAKEHOLDER
-        expect(results[3].path).toBe('developer.md'); // ROLE
+        expect(results[0].file.path).toBe('project1.md');  // OUTCOME
+        expect(results[1].file.path).toBe('team.md');      // COMMUNITY
+        expect(results[2].file.path).toBe('person.md');    // STAKEHOLDER
+        expect(results[3].file.path).toBe('developer.md'); // ROLE
     });
 
-        test('should sort results by context type priority', () => {
+    test('should sort results by context type priority', () => {
         const contextItems = ['#role', '[[person]]', '#community', '[[project1]]'];
         const results = translator.translateAll(contextItems, mockSourceFile);
         
-        expect(results[0].path).toBe('project1.md');  // OUTCOME
-        expect(results[1].path).toBe('team.md');      // COMMUNITY
-        expect(results[2].path).toBe('person.md');    // STAKEHOLDER
-        expect(results[3].path).toBe('developer.md'); // ROLE
+        expect(results[0].file.path).toBe('project1.md');  // OUTCOME
+        expect(results[1].file.path).toBe('team.md');      // COMMUNITY
+        expect(results[2].file.path).toBe('person.md');    // STAKEHOLDER
+        expect(results[3].file.path).toBe('developer.md'); // ROLE
     });
 });
