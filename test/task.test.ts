@@ -92,4 +92,35 @@ describe('Task', () => {
         expect(task.getCreatedDate().format('YYYY-MM-DD')).toBe('2024-01-05');
         expect(task.getPriority()).toBe('⏫');
     });
+
+    test('should render as string', () => {
+        const task = new Task('- [ ] Complex task 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫');
+        expect(task.getName()).toBe('Complex task');
+        expect(task.toString()).toEqual('- [ ] Complex task #15m 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫')
+    });
+
+    test('should extract context correctly', () => {
+        const task = new Task('- [ ] Complex task [[CONTEXT1]] #rel/2 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫');
+        expect(task.getContext()).toContain('[[CONTEXT1]]');
+        expect(task.getContext()).toContain('#rel/2');
+        expect(task.toString()).toEqual('- [ ] Complex task [[CONTEXT1]] #rel/2 #15m 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫')
+    });
+
+    test('should allow unique additions to context', () => {
+        const task = new Task('- [ ] Complex [[CONTEXT1]] task #rel/2 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫');
+        task.addContext(["[[CONTEXT2]]"]);
+        expect(task.getContext()).toContain('[[CONTEXT1]]');
+        expect(task.getContext()).toContain('#rel/2');
+        expect(task.toString()).toEqual('- [ ] Complex [[CONTEXT1]] task #rel/2 [[CONTEXT2]] #15m 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫')
+    });
+
+    test('should not duplicate additions to context', () => {
+        const task = new Task('- [ ] Complex task [[CONTEXT1]] #rel/2 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫');
+        task.addContext(["[[CONTEXT1]]"]);
+        expect(task.getContext()).toContain('[[CONTEXT1]]');
+        expect(task.getContext()).toContain('#rel/2');
+        expect(task.getContext()).toHaveLength(2);
+        expect(task.toString()).toEqual('- [ ] Complex task [[CONTEXT1]] #rel/2 #15m 📅 2024-01-15 ⏳ 2024-01-10 ➕ 2024-01-05 ⏫')
+    });
+    
 });

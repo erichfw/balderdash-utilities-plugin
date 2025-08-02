@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
 import moment from 'moment';
-import { extractLineContext } from '../utils/helpers';
+import { Block } from './block';
 
 const METADATA_CHARS: string = '📅🛫⏳⏫🔼🔽🔺⏬🆔⛔🔁➕✅';
 const TASK_PRIORITY: RegExp = /[⏫🔼🔽🔺⏬]/u; 
 const TASK_COMPLETE: RegExp = /^-\s\[x\]/;
 const SOURCE_BACKLINK: RegExp = /\[\[.*?\|?\s?🖇️\]\]/u; 
-const TASK_NAME: RegExp = /^(-\s\[[x\s]\]\s)(.*?)(?:\s[📅🛫⏳⏫🔼🔽🔺⏬🆔⛔🔁➕✅]|$)/u;
+// Update the TASK_NAME regex to match any metadata character to the end of the line
+const TASK_NAME: RegExp = /^(-\s(?:\[[x\s]\]\s)?)(.*?)(\s[📅🛫⏳⏫🔼🔽🔺⏬🆔⛔🔁➕✅].*)?$/u;
 const TASK_DURATION: RegExp = /#([0-9]{1,3})m/; 
 
 enum TaskPriority {
@@ -38,7 +39,7 @@ export class Task {
   private startedDate?:moment.Moment;
   private completionDate?: moment.Moment;
   private line: string;
-  private priority : TaskPriority
+  private priority : TaskPriority = TaskPriority.Normal
   private metadata: string = '';
   private metadataMap = new Map<string, string>();
   private backlink: string = '';
@@ -47,7 +48,7 @@ export class Task {
   private duration : number = 15;
 
   constructor(line: string) {
-    this.line = line;
+    this.line = line
     this.parse();
   }
 
@@ -74,7 +75,7 @@ export class Task {
   getCreatedDate(): moment.Moment  {
     if (this.creationDate === undefined) {
       const meta = this.getMetadata();
-      this.creationDate = moment(meta.get('➕'));
+      this.creationDate = meta.get('➕') ? moment(meta.get('➕')) : moment();
     }
     return this.creationDate;
   }
@@ -99,13 +100,18 @@ export class Task {
     return this.priority;
   }
 
-  getDuration():number{
+  getDuration():number {
     return this.duration;
   }
 
   getBacklink(): string {
      return this.backlink;
   }  
+
+  setBacklink(link:string) {
+    //Todo: validate
+    this.backlink = link;
+  }
   
   getMetadata(): Map<string, string> {
     return this.metadataMap;   
@@ -118,6 +124,21 @@ export class Task {
   isComplete(): boolean {
     return !!this.complete;
   }
+
+  getContext(): string[] {
+    return this.context;
+  } 
+
+  private setContext(context: string[]) {
+    this.context = context;
+  }
+
+  addContext(context: string[]) {
+    if (!this.context) {
+      this.context = [];
+    }
+    context.forEach((c) => !this.context.includes(c) ? this.context.push(c) : "")
+  }    
 
   isDue(): boolean {
     if (this.getDueDate() === undefined) return false;
@@ -139,11 +160,15 @@ export class Task {
       temp = this.line.replace(matched3[1], '');
     }
 
-    const matched2 = temp.match(TASK_NAME);
+    const matched2 = temp.match(TASK_NAME); 
     if (matched2) {
-      this.name = matched2[2];
-      this.metadata = this.line.replace(matched2[1] + matched2[2], '');
-      this.context = extractLineContext(this.name);
+      console.debug("Task name: ",matched2);
+      this.name = matched2[2]?.trim() || "No name";
+      this.metadata = matched2[3]?.trim() || "";
+      this.context = Block.extractLineContext(this.name);
+      console.debug("Task name: ",matched2[2]!)
+      console.debug("Task context: ",this.context);
+      console.debug("Task metadata: ",this.metadata);
     }
 
     this.complete = !!this.line.match(TASK_COMPLETE);
@@ -155,10 +180,11 @@ export class Task {
       this.priority = TaskPriority.Normal;
     }
 
+
     for (const char of METADATA_CHARS) {
       if (this.metadata.includes(char)) {
           // Match metadata pattern: space + emoji + space + (captured value) + (space or end of string)
-          const matched = this.metadata.match(new RegExp(String.raw`\s${char}\s(.*?)(?:\s|$)`));        
+          const matched = this.metadata.match(new RegExp(String.raw`\s*${char}\s(.*?)(?:\s|$)`));        
           if (matched) {
             this.metadataMap.set(char, matched[1]);
           }
@@ -167,7 +193,12 @@ export class Task {
   }
 
   toString(): string {
-    const complete = this.complete ? 'x' : ' ';
-    return `- [${complete}] ${this.name} ${this.context.join(" ")} #${this.duration}m ${this.backlink} ${this.metadata}`;
+    const complete = this.isComplete() ? 'x' : ' ';
+    let line = `- [${complete}] ${this.name}`
+    this.context.forEach(c => line = line.includes(c) ? line : line.concat(` ${c}`));
+    line = line.concat(` #${this.duration}m`);
+    line = line.concat(this.backlink ? ` ${this.backlink}` : "");
+    line = line.concat(this.metadata ? ` ${this.metadata}` : "");
+    return line.trim();
   }
 }

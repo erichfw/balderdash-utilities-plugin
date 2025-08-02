@@ -1,15 +1,22 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
 import { generateUniqueCode } from '../utils/helpers';
+import moment from 'moment';
 
 /**
  * Represents a block of text in a markdown file
  */
 export class Block {
     private text: string;
-    private headerLevel: string = '#';
-    private headerValue: string = '';
-    private context: string[] = [];
+    private header : {level : string, value : string, raw : string}
+    private context: string[];
     private blockId: string;
+
+    public static extractLineContext(text: string): string[] {
+        const links = text.match(/\[\[.*?\]\]/g) || [];
+        // Extract all hashtag-style tags from the text (e.g. #tag, #tag/subtag)
+        const tags = text.match(/#(rel|role)\/[\w/]+/g) || [];        
+        return [...links, ...tags];
+    }
 
     /**
      * Creates a new Block instance
@@ -18,30 +25,43 @@ export class Block {
     constructor(text: string) {
         this.text = text;
         this.blockId = generateUniqueCode(10);
-        this.extractHeader();
-        this.extractContext();
+
+        this.header = this.extractHeader(text);
+
+        this.text = text.replace(this.header.raw, "")
+
+        this.context = this.extractContext();
     }
 
     /**
      * Extracts the header from the block text
      * @returns Object containing header level and value
      */
-    public extractHeader(): { level: string, value: string } {
-        const headerRegex = /^(#{1,6})\s+(.*)$/m;
-        const match = this.text.match(headerRegex);
+    private extractHeader(text:string): { level: string, value: string, raw : string } {
+        const headerRegex = /^(#{1,6})(\s+)(.*)$/m;
+        const match = text.match(headerRegex);
         
         if (match) {
-            this.headerLevel = match[1].trim();
-            this.headerValue = match[2].trim();
+            return {
+                level: match[1].trim(),
+                value: match[3].trim(),
+                raw: `${match[1]}${match[2]}${match[3]}`
+            };
         } else {
-            this.headerLevel = '#';
-            this.headerValue = this.blockId;
+            return {
+                level: "#",
+                value: this.getBlockId(),
+                raw: `# ${moment().format("YYYY-MM-DD")} - ${this.getBlockId()}`
+            };
         }
-        
-        return {
-            level: this.headerLevel,
-            value: this.headerValue
-        };
+    }
+
+    /**
+     * 
+     * @returns 
+     */
+    public getHeader(): string {
+        return this.header.raw;
     }
 
     /**
@@ -49,7 +69,7 @@ export class Block {
      * @returns 
      */
     public getHeaderLevelNumber(): number {
-        return this.headerLevel.length;
+        return this.header.level.length;
     }
 
     /**
@@ -57,7 +77,7 @@ export class Block {
      * @returns The header level (e.g., '#', '##', etc.)
      */
     public getHeaderLevel(): string {
-        return this.headerLevel;
+        return this.header.level;
     }
 
 
@@ -66,42 +86,51 @@ export class Block {
      * @returns The header text value
      */
     public getHeaderValue(): string {
-        return this.headerValue;
+        return this.header.value;
     }
 
     /**
      * Extracts the context from the block
      * @returns Array of context items (tags and links)
      */
-    public extractContext(): string[] {
+    private extractContext(): string[] {
         const lines = this.text.split('\n');
-        this.context = [];
-        let capture = false;
+        const context = [];
+        const newLines : string[] = []
+        let capture = true;
+
+        console.log("All lines ",lines)
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
 
-            // Check for header
-            if (/^#{1,6}\s+/.test(line)) {
-                capture = true;
-                continue;
-            }
+            console.log("Line processing ",line)
 
-            // Capture context after header
             if (capture) {
+                // Capture context after header
                 if (/^\[\[.+?\]\]$/.test(line) || /^#\w+/.test(line)) {
                     // Extract links and tags
                     const links = line.match(/\[\[.+?\]\]/g) || [];
-                    const tags = line.match(/#\w+/g) || [];
-                    this.context.push(...links, ...tags);
+                    const tags = line.match(/#(rel|role)[\w/]+/g) || [];
+                    context.push(...links, ...tags);
+                    console.log("Tag line ",line)
                 } else if (line.length > 0) {
                     // Stop capturing on first non-tag/non-link line
-                    break;
+                    capture  = false;
+                    newLines.push(line);
+                    console.log("New line first",line)
                 }
+            } else {
+                newLines.push(line);
+                console.log("New line after",line)
             }
         }
+
+        this.setText(newLines.join("\n"));
+
+        console.log(context);
         
-        return this.context;
+        return context;
     }
 
     /**
@@ -126,6 +155,40 @@ export class Block {
      */
     public getText(): string {
         return this.text;
+    }
+
+    /**
+     * Gets the full text content of the block
+     * @returns The block text
+     */
+    public setText(text:string) {
+        this.text = text;
+    }
+
+    /**
+     * Iterates through each line of the block text
+     * @param callback Function to execute for each line
+     */
+    public forEachLine(callback: (line: string, index: number, ...args: any[]) => void, ...args: any[]): Block {
+        const lines = this.text.split('\n');
+        lines.forEach((line, index) => {
+            callback(line, index, ...args);
+        });
+        return this;
+    }
+
+
+    /**
+     * Iterates through each line of the block text
+     * @param callback Function to execute for each line
+     */
+    public async mapEachLine(callback: (line: string, index: number, ...args: any[]) => Promise<string>, ...args: any[]): Promise<Block> {
+        let lines = this.text.split('\n');
+        lines = await Promise.all(lines.map(async (line, index) => {
+            return await callback(line, index, ...args);
+        }));
+        this.text = lines.join("\n");
+        return this;
     }
 
 }
