@@ -86,7 +86,7 @@ Some content here.`;
     });
 
     
-test('should extract context correctly - tags in lines', () => {
+test('should extract context correctly - from header and not from lines', () => {
         const blockText = `## Test Header
     
 [[link1]]
@@ -100,6 +100,50 @@ Some content here.`;
         expect(context).toContain('[[link1]]');
         expect(context).toContain('#rel/1');
         expect(context).toHaveLength(2);
+    });
+
+
+    test('should extract context and other tags correctly - single line', () => {
+        const blockText = `# 02- Test case 2 - simple note with context
+
+[[Goal file 1]] #rel/person2  #role/1  #meeting #30m
+
+- Test 02.1- The context for this bloc is a goal, stakeholder and role
+- Test 02.2 - This block needs to be hard linked to goal 1
+- Test 02.3 - This block needs to be soft linked to stakeholder 2
+- Test 02.4 - This block needs to be soft linked to role 1
+- Test 03.4 - This block needs to be embedded in current page`;
+
+        const block = new Block(blockText);
+        const context = block.getContext();
+        expect(context).toContain('[[Goal file 1]]');
+        expect(context).toContain('#rel/person2');
+        expect(context).toContain('#role/1');
+        expect(context).toHaveLength(3);
+        const otherTags = block.getOtherTags();
+        expect(otherTags).toContain('#meeting');
+        expect(otherTags).toContain('#30m');
+        expect(otherTags).toHaveLength(2);
+    });
+
+    test('should extract context and other tags correctly - multi lines', () => {
+        const blockText = `## Test Header
+
+[[link1]]
+#rel/1 #15m #meeting
+
+context stops with first line #tag2 #tag3 [[link2]]
+
+Some content here.`;
+        const block = new Block(blockText);
+        const context = block.getContext();
+        expect(context).toContain('[[link1]]');
+        expect(context).toContain('#rel/1');
+        expect(context).toHaveLength(2);
+        const otherTags = block.getOtherTags();
+        expect(otherTags).toContain('#meeting');
+        expect(otherTags).toContain('#15m');
+        expect(otherTags).toHaveLength(2);
     });
 
 
@@ -147,7 +191,7 @@ More content`);
 
     test('should handle empty context', () => {
         const block = new Block('# Header\nJust plain text');
-        const context = block.extractContext();
+        const context = block.getContext();
         
         expect(context).toHaveLength(0);
     });

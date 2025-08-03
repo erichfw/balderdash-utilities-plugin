@@ -29,42 +29,27 @@ export function generateBacklink(target:TFile) : {link:string, anchor:string} {
 
 
 export async function fileToHeader(lines : string, file : TFile, header : string) {
-		console.log(`Adding ${lines} to ${file.basename} under ${header}`);
-		let oldFileContent = "";
+
+		if (!file) {console.log("filetoheader - didnt receive a file to export header ",header," with lines ", lines); return}
+		console.log(`filetoheader - adding ${lines} to ${file.name} under header ${header}`);
+
+		const newContent = header + "\n\n" + lines;
+		const regex = new RegExp(`^${header}(?:\\n^\\s*$)*`, 'gm');
 
 		try {
-			oldFileContent = await file.vault.read(file);
-		} catch (error) {
-			console.log("File not read:", error);
-			return;
-		}
-
-		let newFileContent = "";
-		let headerFlag = false;
-		let outFlag = false;
-
-		if (!oldFileContent) {
-			newFileContent = header + "\n\n" + lines;
-		}
-		else {
-			for (const oldLine of oldFileContent.split("\n")){			
-				if (oldLine === header && outFlag !== true ) { headerFlag = true; newFileContent = newFileContent + oldLine + "\n"; continue }
-				if (headerFlag && oldLine !== "" ) { newFileContent = newFileContent + lines + "\n" + oldLine + "\n"; headerFlag = false; outFlag = true }
-				else newFileContent = newFileContent.concat(oldLine).concat("\n")
-			}
-			if (!outFlag) {
-				newFileContent = oldFileContent + "\n\n" + header + "\n\n" + lines;
-			}
-		}
-
-		//Todo: What happens if header is last line in file
-
-		if (newFileContent.endsWith("\n") && !newFileContent.endsWith("\n\n")) newFileContent = newFileContent + "\n"
-		if (!newFileContent.endsWith("\n\n")) newFileContent = newFileContent + "\n\n"
-
-		try {
-			await file.vault.modify(file, newFileContent);
-			console.log("File updated successfully.");
+			await file.vault.process(file, 
+					(oldFileContent) => {
+						if (!oldFileContent) {
+							//Empty file
+							return newContent; 
+						}
+						if (oldFileContent.match(regex)) {
+							return oldFileContent.replace(oldFileContent.match(regex)![0], newContent)
+						}
+						return oldFileContent + "\n\n" + newContent;
+					}	
+				)
+			console.log(`File ${file.name} updated successfully.`);
 		} catch (error) {
 			console.log("Failed to update file:", error);
 		}

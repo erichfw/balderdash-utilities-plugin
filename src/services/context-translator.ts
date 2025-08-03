@@ -6,10 +6,10 @@ import { App, TFile, Vault } from 'obsidian';
  */
 
 export enum ContextType {
-    OUTCOME = '#stakeholder',
+    OUTCOME = '#outcome',
     ROLE = '#role',
     COMMUNITY = '#community', 
-    STAKEHOLDER = '#outcome',
+    STAKEHOLDER = '#stakeholder',
 }
 
 const order = {
@@ -66,6 +66,7 @@ export class ContextTranslator {
                 const file = this.app.metadataCache.getFirstLinkpathDest(linkedPath, source.path);
                  if (file && file.path) {
                     const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type 
+                    console.log(`Convert line context ${contextItem} to ${file.path} with type ${type}`);
                     return {contextItem, file: file as TFile, type}
                 }
                 else {
@@ -84,7 +85,8 @@ export class ContextTranslator {
             try {
                 const file = files.find(f => this.app.metadataCache.getFileCache(f)?.frontmatter?.key === contextItem);
                 if (file) {
-                    const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type 
+                    const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type
+                    console.log(`Convert tag context ${contextItem} to ${file.path} with type ${type}`);
                     return {contextItem, file, type}
                 }
                 else {
@@ -106,8 +108,15 @@ export class ContextTranslator {
         if (contextItems.length === 0) return [];
         const files = contextItems
             .map(i => this.translate(i, sourcePath))
-            .filter((a): a is {contextItem: string, file: TFile; type: ContextType } => a !== undefined)
-            .sort((a, b) => order[a.type] - order[b.type]) //if a < b then put b first;
+            .filter((a) => a !== undefined)
+            .map(a => a as ContextDecoded)
+            .sort((a, b) => {
+
+                console.log(a.contextItem," ",a.type," ",order[a.type]);
+                console.log(b.contextItem," ",b.type," ",order[b.type]);
+
+                return order[a.type] - order[b.type]
+            }) //if a < b then put b first;
         console.log(`Translating context items: ${contextItems.join(', ')} to files: ${files.map(f => f.file.path).join(', ')}`);
         return files;
     }

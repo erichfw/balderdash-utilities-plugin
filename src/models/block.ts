@@ -8,8 +8,9 @@ import moment from 'moment';
 export class Block {
     private text: string;
     private header : {level : string, value : string, raw : string}
-    private context: string[];
+    private blockContext: string[];
     private blockId: string;
+    private otherBlockTags : string[];
 
     public static extractLineContext(text: string): string[] {
         const links = text.match(/\[\[.*?\]\]/g) || [];
@@ -25,12 +26,11 @@ export class Block {
     constructor(text: string) {
         this.text = text;
         this.blockId = generateUniqueCode(10);
-
         this.header = this.extractHeader(text);
-
-        this.text = text.replace(this.header.raw, "")
-
-        this.context = this.extractContext();
+        this.text = text.replace(this.header.raw, "").trim();
+        const context =  this.extractContext();
+        this.blockContext = context.context;
+        this.otherBlockTags = context.otherTags;
     }
 
     /**
@@ -93,44 +93,38 @@ export class Block {
      * Extracts the context from the block
      * @returns Array of context items (tags and links)
      */
-    private extractContext(): string[] {
+    private extractContext(): {otherTags:string[],context:string[]} {
         const lines = this.text.split('\n');
         const context = [];
+        const otherTags = []
         const newLines : string[] = []
         let capture = true;
-
-        console.log("All lines ",lines)
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
 
-            console.log("Line processing ",line)
-
             if (capture) {
                 // Capture context after header
-                if (/^\[\[.+?\]\]$/.test(line) || /^#\w+/.test(line)) {
+                if (/^\[\[.+?\]\]/.test(line) || /^#\w+/.test(line)) {
                     // Extract links and tags
                     const links = line.match(/\[\[.+?\]\]/g) || [];
-                    const tags = line.match(/#(rel|role)[\w/]+/g) || [];
-                    context.push(...links, ...tags);
-                    console.log("Tag line ",line)
+                    const contextTags = line.match(/#(rel|role)[\w/]+/g) || [];
+                    const other = line.match(/#(?!(rel|role)\/)[\w/]+/g) || [];               
+                    context.push(...links, ...contextTags);
+                    otherTags.push(...other);
                 } else if (line.length > 0) {
                     // Stop capturing on first non-tag/non-link line
                     capture  = false;
                     newLines.push(line);
-                    console.log("New line first",line)
                 }
             } else {
                 newLines.push(line);
-                console.log("New line after",line)
             }
         }
 
         this.setText(newLines.join("\n"));
-
-        console.log(context);
         
-        return context;
+        return {otherTags:otherTags, context:context};
     }
 
     /**
@@ -138,8 +132,27 @@ export class Block {
      * @returns Array of context items (tags and links)
      */
     public getContext(): string[] {
-        return this.context;
+        //Todo: Always return context in right order
+        return this.blockContext;
     }
+
+    /**
+     * Gets the context of the block
+     * @returns Array of context items (tags and links)
+     */
+    public getOtherTags(): string[] {
+        return this.otherBlockTags;
+    }
+
+
+     /**
+     * Gets the context of the block
+     * @returns Array of context items (tags and links)
+     */
+    public containsOtherTags(tag:string): boolean {
+        return this.getOtherTags().includes(tag);
+    }
+
 
     /**
      * Gets the unique ID for this block

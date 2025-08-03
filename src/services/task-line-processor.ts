@@ -88,12 +88,14 @@ export class TaskProcessor {
     //ToDo make this settings driven
     public preprocess(line: string) : string {
         let newLine : string = line;
-        newLine = newLine.includes("#key-date") ? newLine.concat(" #action #0m") : newLine;
-        newLine = chrono.parseDate(newLine) ? newLine.concat(` 📅${moment(chrono.parse(newLine, new Date(),{ forwardDate: true })[0].start.date()).format("YYYY-MM-DD")}`) : newLine
+        const temp = newLine.replace(/#\S+/g,"").replace(/\[\[.+?\]\]/g,"");
+        console.log(temp);
+        newLine = chrono.parseDate(temp) ? newLine.concat(` 📅 ${moment(chrono.parse(temp, new Date(),{ forwardDate: true })[0].start.date()).format("YYYY-MM-DD")}`) : newLine
+        newLine = newLine.includes("#today") ? newLine.replace("#today","").concat(` 📅 ${moment().format("YYYY-MM-DD")}`) : newLine; //short hand for #action   
+        newLine = newLine.includes("#key-date") ? newLine.replace("#key-date","#key-date #action #0m") : newLine;
         newLine = newLine.includes("#follow-up") ? newLine.concat(" #action #5m").replace("#follow-up", "Follow up") : newLine; //short hand for #action #5m
         newLine = newLine.includes("#think-about") ? newLine.concat(" #action #30m").replace("#think-about", "Think about") : newLine; //short hand for #action #30m
         newLine = newLine.includes("#read") ? newLine.concat(" #action #30m").replace("#read", "Read") : newLine; //short hand for #action #30m
-        newLine = newLine.includes("#today") ? newLine.replace("#today'", `📅${moment().format("YYYY-MM-DD")}`) : newLine; //short hand for #action  
         newLine = newLine.includes("#frog") ? newLine.replace("#frog", "#🐸") : newLine;
         return newLine;
     }

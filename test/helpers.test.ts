@@ -1,88 +1,77 @@
 import { generateUniqueCode, fileToHeader} from '../src/utils/helpers';
-import { TFile } from 'obsidian';
-
-// Mock TFile
-class MockTFile {
-    path: string;
-    name: string;
-    vault: any;
-
-    constructor(path: string) {
-        this.path = path;
-        this.name = path.split('/').pop() || '';
-        this.vault = {
-            read: jest.fn().mockResolvedValue('# Todo\n\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content'),            
-            modify: jest.fn().mockResolvedValue('')
-        };
-    }
-}
-
-// Mock TFile
-class MockTFileEmpty {
-    path: string;
-    name: string;
-    vault: any;
-
-    constructor(path: string) {
-        this.path = path;
-        this.name = path.split('/').pop() || '';
-        this.vault = {
-            read: jest.fn().mockResolvedValue(''),
-            modify: jest.fn().mockResolvedValue('')
-        };
-    }
-}
-
 
 describe('Helpers', () => {
 
     describe('fileToHeader', () => {
+       const mockProcess = jest.fn();
 
-        const mockSettings = {
-            myTaskHeader:"# Todo",
-            myTaskAliases: ["#action","#follow-up","#think-about","#read"],
-            myResourceAliases: ["#resource","#resource-lucid","#resource-docx","#resource-xlsx","#resource-pptx","#resource-http","#resource-pdf","#resource-confluence","#resource-teams"],
-            myResouceFile: "Resources.md",
-            myResourceHeader:"# Resources",
-            myDestinationOverwrite : "#here",
-            myBlockNoteFolder: "005 / Meeting Notes",
-            myBlockListHeader: "# Notes"
+        const mockFile = {
+            name: 'test.md',
+            vault: {
+            process: mockProcess,
+            },
         };
 
-        test('should add line to file under existing header', async () => {
-            const line = "- [ ] This is a new line";
-            const file = new MockTFile('tasks.md');
-            
-            await fileToHeader(line, file as TFile,mockSettings.myTaskHeader);
-            
-            expect(file.vault.read).toHaveBeenCalledWith(file);
-            expect(file.vault.modify).toHaveBeenCalled();
-            expect(file.vault.modify).toHaveBeenCalledWith(file,'# Todo\n\n- [ ] This is a new line\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content\n\n');
-        });
-        
-        test('should add line to file under new header if file is empty', async () => {
-        
-            const line = "This is a new line";
-            const file = new MockTFileEmpty('empty.md');
-            
-            await fileToHeader(line, file as TFile, mockSettings.myTaskHeader);
-
-            expect(file.vault.read).toHaveBeenCalled();
-            expect(file.vault.modify).toHaveBeenCalled();
-            expect(file.vault.modify).toHaveBeenCalledWith(file,"# Todo\n\nThis is a new line\n\n");
+        beforeEach(() => {
+            jest.clearAllMocks();
         });
 
-        test('should create new header if file is not empty but does not have header', async () => {
-            const line = "This is a new line";
-            const file = new MockTFile('tasks.md');
-            
-            await fileToHeader(line, file as TFile, "# New header");
+        test('should handle empty file', async () => { 
 
-            expect(file.vault.read).toHaveBeenCalled();
-            expect(file.vault.modify).toHaveBeenCalled();
-            expect(file.vault.modify).toHaveBeenCalledWith(file,'# Todo\n\n- [ ] Existing content\n- [ ] Existing task content\n\n# Notes\n\n - This is a note\n\n# Another header\n\n - Existing content\n - Existing content\n\n# New header\n\nThis is a new line\n\n');
+            const existingContent = "";
+            const lines = 'This is a new line';
+            const header = '# Todo';
+
+            await fileToHeader(lines, mockFile as any, header);
+
+            const [[, callback]] = mockProcess.mock.calls;
+            const result = callback(existingContent);
+            expect(result).toBe("# Todo\n\nThis is a new line")
+
+            expect(mockProcess).toHaveBeenCalledTimes(1);
+            expect(mockProcess).toHaveBeenCalledWith(mockFile, expect.any(Function));
+
+        });
+
+        test('should replace existing header', async () => {
+            
+            const existingContent = "# Todo\nThis is an existing item";
+            const lines = 'This is a new line';
+            const header = '# Todo';
+
+            await fileToHeader(lines, mockFile as any, header);
+
+            const [[, callback]] = mockProcess.mock.calls;
+            const result = callback(existingContent);
+            expect(result).toBe("# Todo\n\nThis is a new line\nThis is an existing item")
+
+            expect(mockProcess).toHaveBeenCalledTimes(1);
+            expect(mockProcess).toHaveBeenCalledWith(mockFile, expect.any(Function));
+
+        });
+
+        test('should append to file when header not found', async () => {
+            const existingContent = "# Notes\nexisiting note";
+            const lines = 'This is a new line';
+            const header = '# Todo';
+
+            await fileToHeader(lines, mockFile as any, header);
+
+            const [[, callback]] = mockProcess.mock.calls;
+            const result = callback(existingContent);
+            expect(result).toBe(`# Notes\nexisiting note\n\n${header}\n\n${lines}`);
+
+            expect(mockProcess).toHaveBeenCalledTimes(1);
+            expect(mockProcess).toHaveBeenCalledWith(mockFile, expect.any(Function));
+        });
+
+        test('should return early if no file provided', async () => {
+            await fileToHeader('- new task', null as any, '# Tasks');
+            
+            expect(mockFile.vault.process).not.toHaveBeenCalled();
         });
     });
+
 
     describe('generateUniqueCode', () => {
         test('should generate code with default length of 10', () => {

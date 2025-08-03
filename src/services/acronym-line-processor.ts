@@ -35,11 +35,13 @@ export class AcronymProcessor {
         newLine = newLine.trim().startsWith("- ") ? newLine : "- ".concat(newLine);
         newLine = `- ${moment().format("YYYY-MM-DD")} ${newLine}`
         newLine = newLine.concat(resourceBacklink.link);
-        console.debug(`The acronym line is:`, line);
+        
 
         this.settings.myAcronymAliases.filter(t => newLine = newLine.replace(t,""));
-        
+
+        console.log(`Writing acronym to current file:`, line);        
         await fileToHeader(newLine,currentFile,this.settings.myAcronymHeader);
+        console.log(`Writing acronym to acronym file:`, line);    
         await fileToHeader(newLine,acronymFile,this.settings.myAcronymHeader);
    
         line = line.concat(" ^").concat(resourceBacklink.anchor);

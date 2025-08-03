@@ -1,7 +1,7 @@
 import { App,  Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { ProcessSelectionCommand } from './commands/balderdash-process-selection';
 import { CancelTasksCommand } from './commands/cancel-tasks';
 import { CancelHabitTasksCommand } from './commands/cancel-habit-task';
+import { FileTaskCommand } from './commands/file-tasks';
 import { ProcessBlockTasksCommand } from './commands/balderdash-process-block';
 
 interface MyPluginSettings {
@@ -13,17 +13,25 @@ interface MyPluginSettings {
 	myBlockListHeader: string;
 	myDestinationOverwrite: string;
 	myBlockNoteFolder: string;
+	myAcronymHeader:string;
+	myAcronymAliases:string[];
+	myAcronymFile:string;
+	myMeetingBlockAliase:string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	myTaskHeader:"# Todo",
 	myTaskAliases: ["#action","#follow-up","#think-about","#read"],
-	myResourceAliases: ["#resource","#resource-lucid","#resource-docx","#resource-xlsx","#resource-pptx","#resource-http","#resource-pdf","#resource-confluence","#resource-teams"],
+	myResourceAliases: ["#resource-lucid","#resource-docx","#resource-xlsx","#resource-pptx","#resource-http","#resource-pdf","#resource-confluence","#resource-teams"],
 	myResouceFile: "Resources.md",
 	myResourceHeader:"# Resources",
-	myBlockNoteFolder: "005 / Meeting Notes",
+	myBlockNoteFolder: "meetings",
 	myBlockListHeader: "# Notes",
-	myDestinationOverwrite: "#here"
+	myDestinationOverwrite: "#here",
+	myAcronymHeader: "# Acronyms",
+	myAcronymAliases: ["#acronym"],
+	myAcronymFile:"Acronyms.md",
+	myMeetingBlockAliase:"#meeting"
 }
 
 
@@ -33,12 +41,11 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		console.log('Plugin settings loaded:', this.settings);
-
 	
-		this.addCommand(new ProcessSelectionCommand(this.settings));
 		this.addCommand(new CancelTasksCommand(this.settings));
 		this.addCommand(new CancelHabitTasksCommand(this.settings));
 		this.addCommand(new ProcessBlockTasksCommand(this.settings));
+		this.addCommand(new FileTaskCommand(this.settings));
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
@@ -155,6 +162,17 @@ class SampleSettingTab extends PluginSettingTab {
 					this.plugin.settings.myBlockNoteFolder = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+		.setName('Acronym File')
+		.setDesc('File for filing acronyms')
+		.addText(text => text
+			.setPlaceholder('Enter file name')
+			.setValue(this.plugin.settings.myAcronymFile)
+			.onChange(async (value) => {
+				this.plugin.settings.myAcronymFile = value;
+				await this.plugin.saveSettings();
+			}));
 				
 	}
 }

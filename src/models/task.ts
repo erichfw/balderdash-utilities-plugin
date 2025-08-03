@@ -157,18 +157,14 @@ export class Task {
     const matched3 = this.line.match(TASK_DURATION)
     if (matched3) {
       this.duration = Number(matched3[1]);
-      temp = this.line.replace(matched3[1], '');
+      temp = this.line.replace(`#${matched3[1]}m`, '');
     }
 
     const matched2 = temp.match(TASK_NAME); 
     if (matched2) {
-      console.debug("Task name: ",matched2);
       this.name = matched2[2]?.trim() || "No name";
       this.metadata = matched2[3]?.trim() || "";
       this.context = Block.extractLineContext(this.name);
-      console.debug("Task name: ",matched2[2]!)
-      console.debug("Task context: ",this.context);
-      console.debug("Task metadata: ",this.metadata);
     }
 
     this.complete = !!this.line.match(TASK_COMPLETE);
