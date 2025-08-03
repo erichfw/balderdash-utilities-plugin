@@ -30,8 +30,8 @@ export function generateBacklink(target:TFile) : {link:string, anchor:string} {
 
 export async function fileToHeader(lines : string, file : TFile, header : string) {
 
-		if (!file) {console.log("filetoheader - didnt receive a file to export header ",header," with lines ", lines); return}
-		console.log(`filetoheader - adding ${lines} to ${file.name} under header ${header}`);
+		if (!file) {console.error("filetoheader - didnt receive a file to export header ",header," with lines ", lines); return}
+		console.debug(`filetoheader - adding ${lines} to ${file.name} under header ${header}`);
 
 		const newContent = header + "\n\n" + lines;
 		const regex = new RegExp(`^${header}(?:\\n^\\s*$)*`, 'gm');
@@ -49,8 +49,8 @@ export async function fileToHeader(lines : string, file : TFile, header : string
 						return oldFileContent + "\n\n" + newContent;
 					}	
 				)
-			console.log(`File ${file.name} updated successfully.`);
+			console.debug(`File ${file.name} updated successfully.`);
 		} catch (error) {
-			console.log("Failed to update file:", error);
+			console.debug("Failed to update file:", error);
 		}
 	}

@@ -16,10 +16,8 @@ export class CancelHabitTasksCommand implements Command {
 
     async editorCallback (editor: Editor, view: MarkdownView) {
                 
-                const selection = editor.getSelection()
-                console.log('Processing selection:', selection);
-                const lines = selection.split('\n');
-                console.log(`Processing ${lines.length} lines`);	
+                const selection = editor.getSelection();
+                const lines = selection.split('\n');	
                 const processedLines = lines.map(line => {
                     if (line.includes('- [ ]') && line.includes("#habit"))
                         return line.replace("- [ ]","- [-]").concat(` ❌ ${moment().format("YYYY-MM-DD")}`)

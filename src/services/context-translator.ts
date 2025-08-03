@@ -66,7 +66,7 @@ export class ContextTranslator {
                 const file = this.app.metadataCache.getFirstLinkpathDest(linkedPath, source.path);
                  if (file && file.path) {
                     const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type 
-                    console.log(`Convert line context ${contextItem} to ${file.path} with type ${type}`);
+                    console.debug(`Convert line context ${contextItem} to ${file.path} with type ${type}`);
                     return {contextItem, file: file as TFile, type}
                 }
                 else {
@@ -74,7 +74,7 @@ export class ContextTranslator {
                 }
             }
             catch {
-                console.log(`Cannot convert context ${contextItem} to file`)
+                console.error(`Cannot convert context ${contextItem} to file`)
                 return undefined;
             }
         }
@@ -86,14 +86,14 @@ export class ContextTranslator {
                 const file = files.find(f => this.app.metadataCache.getFileCache(f)?.frontmatter?.key === contextItem);
                 if (file) {
                     const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type
-                    console.log(`Convert tag context ${contextItem} to ${file.path} with type ${type}`);
+                    console.debug(`Convert tag context ${contextItem} to ${file.path} with type ${type}`);
                     return {contextItem, file, type}
                 }
                 else {
                     return undefined
                 }
             } catch {
-                console.log(`Cannot convert context ${contextItem} to file.`)
+                console.error(`Cannot convert context ${contextItem} to file.`)
                 return undefined;
             }
         }
@@ -110,14 +110,7 @@ export class ContextTranslator {
             .map(i => this.translate(i, sourcePath))
             .filter((a) => a !== undefined)
             .map(a => a as ContextDecoded)
-            .sort((a, b) => {
-
-                console.log(a.contextItem," ",a.type," ",order[a.type]);
-                console.log(b.contextItem," ",b.type," ",order[b.type]);
-
-                return order[a.type] - order[b.type]
-            }) //if a < b then put b first;
-        console.log(`Translating context items: ${contextItems.join(', ')} to files: ${files.map(f => f.file.path).join(', ')}`);
+            .sort((a, b) => order[a.type] - order[b.type]) //if a < b then put b first;
         return files;
     }
 }

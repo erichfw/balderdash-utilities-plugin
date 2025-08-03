@@ -61,7 +61,7 @@ export class TaskProcessor {
         // Select destination - use current file if overwrite flag present, otherwise use translated or first destination
         const selectedDest = line.includes(this.settings.myDestinationOverwrite) 
             ? currentFile 
-            : taskDestination?.file || destinationFiles[0]?.file;
+            : taskDestination?.file || destinationFiles[0]?.file || currentFile;
         
         
         // Remove destination overwrite flag and preprocess line
@@ -89,7 +89,6 @@ export class TaskProcessor {
     public preprocess(line: string) : string {
         let newLine : string = line;
         const temp = newLine.replace(/#\S+/g,"").replace(/\[\[.+?\]\]/g,"");
-        console.log(temp);
         newLine = chrono.parseDate(temp) ? newLine.concat(` 📅 ${moment(chrono.parse(temp, new Date(),{ forwardDate: true })[0].start.date()).format("YYYY-MM-DD")}`) : newLine
         newLine = newLine.includes("#today") ? newLine.replace("#today","").concat(` 📅 ${moment().format("YYYY-MM-DD")}`) : newLine; //short hand for #action   
         newLine = newLine.includes("#key-date") ? newLine.replace("#key-date","#key-date #action #0m") : newLine;

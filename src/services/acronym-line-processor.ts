@@ -38,10 +38,8 @@ export class AcronymProcessor {
         
 
         this.settings.myAcronymAliases.filter(t => newLine = newLine.replace(t,""));
-
-        console.log(`Writing acronym to current file:`, line);        
-        await fileToHeader(newLine,currentFile,this.settings.myAcronymHeader);
-        console.log(`Writing acronym to acronym file:`, line);    
+ 
+        await fileToHeader(newLine,currentFile,this.settings.myAcronymHeader); 
         await fileToHeader(newLine,acronymFile,this.settings.myAcronymHeader);
    
         line = line.concat(" ^").concat(resourceBacklink.anchor);

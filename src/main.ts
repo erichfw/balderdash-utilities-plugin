@@ -3,6 +3,7 @@ import { CancelTasksCommand } from './commands/cancel-tasks';
 import { CancelHabitTasksCommand } from './commands/cancel-habit-task';
 import { FileTaskCommand } from './commands/file-tasks';
 import { ProcessBlockTasksCommand } from './commands/balderdash-process-block';
+import { ProcessSelectionTasksCommand } from './commands/balderdash-process-selection';
 
 interface MyPluginSettings {
 	myTaskAliases: string[];
@@ -39,9 +40,8 @@ export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		await this.loadSettings();
-		console.log('Plugin settings loaded:', this.settings);
-	
+		await this.loadSettings();	
+		this.addCommand(new ProcessSelectionTasksCommand(this.settings));
 		this.addCommand(new CancelTasksCommand(this.settings));
 		this.addCommand(new CancelHabitTasksCommand(this.settings));
 		this.addCommand(new ProcessBlockTasksCommand(this.settings));

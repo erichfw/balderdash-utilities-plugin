@@ -18,9 +18,7 @@
        editorCallback = async (editor: Editor, view: MarkdownView) => {
                    
         const selection = editor.getSelection()
-        console.log('Processing selection:', selection);
         const lines = selection.split('\n');
-        console.log(`Processing ${lines.length} lines`);	
         const processedLines = lines.map(line => {
             if (line.includes('- [ ]')) 
                 return line.replace("- [ ]","- [-]").concat(` ❌ ${moment().format("YYYY-MM-DD")}`)
